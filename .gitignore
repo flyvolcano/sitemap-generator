@@ -1,0 +1,10 @@
+/vendor
+/.idea
+/.vscode
+/.vagrant
+.phpunit.result.cache
+sitemap.xml
+blacklist.map
+/builds
+.DS_Store
+.editorconfig

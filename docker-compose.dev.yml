@@ -1,0 +1,11 @@
+version: '3.7'
+services:
+  sitemap-generator:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: sitemap-generator
+    container_name: sitemap_generator
+    restart: unless-stopped
+    volumes:
+      - './:/var/www/html/'

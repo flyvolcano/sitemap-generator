@@ -1,0 +1,3 @@
+FROM serversideup/php:8.2-cli
+
+CMD [ "sleep", "100000" ]
