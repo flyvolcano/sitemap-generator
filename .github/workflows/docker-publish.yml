@@ -48,10 +48,11 @@ jobs:
             -   name: Check Out Repo
                 uses: actions/checkout@v2
 
+            -   run: docker build ./. -t ${{ github.repository }}.slim:latest
             -   run: curl -L -O https://downloads.dockerslim.com/releases/1.37.3/dist_linux.tar.gz
             -   run: tar -zxvf dist_linux.tar.gz
             -   run: script -q -c "./dist_linux/docker-slim --debug version"
-            -   run: script -q -c "./dist_linux/docker-slim build --show-blogs --http-probe=false --continue-after=10 --dockerfile Dockerfile --tag ghcr.io/${{ github.repository }}.slim:latest"
+            -   run: script -q -c "./dist_linux/docker-slim build --target ${{ github.repository }}.slim:latest --show-blogs --http-probe=false --continue-after=10 --tag ghcr.io/${{ github.repository }}.slim:latest"
 
             -   name: Login to Github Packages
                 uses: docker/login-action@v2
