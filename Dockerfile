@@ -4,7 +4,7 @@ WORKDIR /var/www/html
 
 COPY . .
 
-ARG BUILD_VERSION=v0.0.1
+ARG BUILD_VERSION
 
 RUN composer install \
     --ignore-platform-reqs \
