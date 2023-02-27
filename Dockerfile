@@ -14,7 +14,7 @@ RUN composer install \
     --optimize-autoloader \
     --prefer-dist
 
-RUN php sitemap app:build --build-version=$BUILD_VERSION
+RUN php sitemap app:build --build-version=${BUILD_VERSION}
 
 FROM php:8.2-cli-alpine
 WORKDIR /app

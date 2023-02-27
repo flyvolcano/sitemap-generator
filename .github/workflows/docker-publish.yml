@@ -42,6 +42,8 @@ jobs:
                     context: .
                     push: true
                     platforms: linux/amd64,linux/arm64
+                    build-args: |
+                        BUILD_VERSION=${{ github.ref_name }}
                     tags: |
                         ghcr.io/${{ github.repository }}:${{ github.ref_name }}
                         ghcr.io/${{ github.repository }}:latest
@@ -54,7 +56,7 @@ jobs:
             -   run: curl -L -O https://downloads.dockerslim.com/releases/1.37.3/dist_linux.tar.gz
             -   run: tar -zxvf dist_linux.tar.gz
             -   run: script -q -c "./dist_linux/docker-slim --debug version"
-            -   run: script -q -c "./dist_linux/docker-slim build --target ${{ github.repository }}.slim:${{ github.ref_name }} --show-blogs --http-probe=false --continue-after=10 --tag ghcr.io/${{ github.repository }}.slim:${{ github.ref_name }}"
+            -   run: script -q -c "./dist_linux/docker-slim build --target ${{ github.repository }}.slim:${{ github.ref_name }} --show-blogs --http-probe=false --continue-after=10 --tag ghcr.io/${{ github.repository }}.slim:${{ github.ref_name }} --tag ghcr.io/${{ github.repository }}.slim:latest"
 
             -   name: Login to Github Packages
                 uses: docker/login-action@v2
