@@ -3,7 +3,6 @@
 namespace App\Commands;
 
 use DateTimeInterface;
-use function Termwind\{render};
 use FluidXml\FluidXml;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Storage;
@@ -14,6 +13,9 @@ use Spatie\Sitemap\SitemapGenerator;
 class GeneratorCommand extends Command
 {
     const BLACKLIST_FILE = 'blacklist.map';
+
+    private array $blackList;
+    private array $tags;
     /**
      * The signature of the command.
      *
@@ -39,68 +41,69 @@ class GeneratorCommand extends Command
         $url = $this->argument('url');
         if(empty($url)) {
             $this->error('The base URL is needed.');
-            return 0;
+            return false;
         }
         $url = filter_var($url, FILTER_SANITIZE_URL);
 
         if (!filter_var($url, FILTER_VALIDATE_URL)) {
             $this->error('Not a valid URL. Valid URL should include scheme: ex: https://example.com');
-            return 0;
+            return false;
         }
 
-        $blackList = [];
+        $this->blackList = $blackList = [];
 
-        if(Storage::exists(self::BLACKLIST_FILE)) {
-            if(!empty($blackListFile = Storage::get(self::BLACKLIST_FILE))) {
-                foreach (explode(PHP_EOL, $blackListFile) as $blackListURL) {
-                    $blackList[] = $blackListURL;
+        $this->task('Checking for `blacklist.map` file', function () use ($blackList) {
+            if(Storage::exists(self::BLACKLIST_FILE)) {
+                if(!empty($blackListFile = Storage::get(self::BLACKLIST_FILE))) {
+                    foreach (explode(PHP_EOL, $blackListFile) as $blackListURL) {
+                        $blackList[] = $blackListURL;
+                    }
+                    $this->blackList = collect($blackList)->filter()->values()->toArray();
                 }
-                $blackList = collect($blackList)->filter()->values()->toArray();
             }
-        }
+            return true;
+        });
 
-        $generator = SitemapGenerator::create($url)
-            ->shouldCrawl(function (UriInterface $url) use ($blackList) {
-                $fullURL = sprintf('%s://%s%s', $url->getScheme(), rtrim($url->getHost(), "/"), rtrim($url->getPath(), "/"));
-                if(!empty($url->getQuery())) {
-                    $fullURL = sprintf('%s://%s%s?%s', $url->getScheme(), rtrim($url->getHost(), "/"), rtrim($url->getPath(), "/"), $url->getQuery());
+        $this->task('Crawling links', function () use ($url) {
+            $generator = SitemapGenerator::create($url)
+                ->shouldCrawl(function (UriInterface $url) {
+                    $fullURL = sprintf('%s://%s%s', $url->getScheme(), rtrim($url->getHost(), "/"), rtrim($url->getPath(), "/"));
+                    if(!empty($url->getQuery())) {
+                        $fullURL = sprintf('%s://%s%s?%s', $url->getScheme(), rtrim($url->getHost(), "/"), rtrim($url->getPath(), "/"), $url->getQuery());
+                    }
+                    $this->output->write('<info>.</info>');
+                    return !in_array($fullURL, $this->blackList);
+                })
+                ->getSitemap();
+            $this->tags = $generator->getTags();
+            return true;
+        }, 'Crawling... Please be patient if the website is huge.');
+
+
+        $this->task('Generating sitemap.xml file', function () {
+            $bar = $this->output->createProgressBar(count($this->tags));
+            $bar->start();
+
+            $xml = new FluidXml('urlset', []);
+            $xml->setAttribute("xmlns", "http://www.sitemaps.org/schemas/sitemap/0.9");
+            $xml->setAttribute("xmlns:xhtml", "http://www.w3.org/1999/xhtml");
+
+            foreach ($this->tags as $tag) {
+                try {
+                    $xml->addChild('url', true)
+                        ->addChild('loc', rtrim($tag->url, "/"))
+                        ->addChild('lastmod', $tag->lastModificationDate->format(DateTimeInterface::ATOM))
+                        ->addChild('changefreq', $tag->changeFrequency)
+                        ->addChild('priority', number_format($tag->priority,1));
+                } catch (\Exception $exception) {
                 }
-                return !in_array($fullURL, $blackList);
-            })
-            ->getSitemap();
-
-
-        $tags = $generator->getTags();
-
-        $bar = $this->output->createProgressBar(count($tags));
-        $bar->start();
-
-        $xml = new FluidXml('urlset', []);
-        $xml->setAttribute("xmlns", "http://www.sitemaps.org/schemas/sitemap/0.9");
-        $xml->setAttribute("xmlns:xhtml", "http://www.w3.org/1999/xhtml");
-
-        foreach ($tags as $tag) {
-            try {
-                $xml->addChild('url', true)
-                    ->addChild('loc', rtrim($tag->url, "/"))
-                    ->addChild('lastmod', $tag->lastModificationDate->format(DateTimeInterface::ATOM))
-                    ->addChild('changefreq', $tag->changeFrequency)
-                    ->addChild('priority', number_format($tag->priority,1));
-            } catch (\Exception $exception) {
+                $bar->advance();
             }
-            $bar->advance();
-        }
+            Storage::put("sitemap.xml", $xml->xml());
+            return true;
+        });
 
-        Storage::put("sitemap.xml", $xml->xml());
-        render(<<<'HTML'
-            <div>
-                <div class="px-1 bg-green-600">Sitemap Generator 🪄</div>
-                <em class="ml-1">
-                  Sitemap generated
-                </em>
-            </div>
-        HTML);
-        return 0;
+        return true;
     }
 
     /**
