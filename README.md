@@ -13,10 +13,10 @@ php sitemap app:build --build-version=0.0.1
 ### Docker usage
 ```
 #pull the image
-docker pull ghcr.io/flyvolcano/sitemap-generator
+docker pull ghcr.io/flyvolcano/sitemap-generator:latest
 
 #run the image. The sitemap will be generated to the current folder.
-docker run --rm -v $(pwd):/app sitemap generate https://example.com
+docker run --rm -v $(pwd):/app ghcr.io/flyvolcano/sitemap-generator:latest generate https://example.com
 ```
 
 ### Blacklisting URLs

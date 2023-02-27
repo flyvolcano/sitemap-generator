@@ -19,7 +19,7 @@ RUN php sitemap app:build --build-version=${BUILD_VERSION}
 FROM php:8.2-cli-alpine
 WORKDIR /app
 
-# Copy Composer dependencies
+# Copy build file
 COPY --from=builder /var/www/html/builds/sitemap /app/sitemap
 
 ENTRYPOINT ["/app/sitemap"]
