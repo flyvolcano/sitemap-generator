@@ -4,6 +4,8 @@ WORKDIR /var/www/html
 
 COPY . .
 
+ARG BUILD_VERSION=v0.0.1
+
 RUN composer install \
     --ignore-platform-reqs \
     --no-interaction \
@@ -12,7 +14,7 @@ RUN composer install \
     --optimize-autoloader \
     --prefer-dist
 
-RUN php sitemap app:build --build-version=0.0.1
+RUN php sitemap app:build --build-version=$BUILD_VERSION
 
 FROM php:8.2-cli-alpine
 WORKDIR /app
